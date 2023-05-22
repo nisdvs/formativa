@@ -1,0 +1,152 @@
+*** Não consegui fazer pelo docker, pois meu computador não tem a opção de ativar a virtualização *******
+
+
+create table users (
+  user_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255),
+  email VARCHAR(255),
+  date_of_birth DATE,
+  password VARCHAR(255),
+  registration_date DATE,
+  occupation_id INT,
+  FOREIGN KEY (occupation_id) REFERENCES occupations (occupation_id)
+);
+
+
+create table occupations (
+  occupation_id INT PRIMARY KEY AUTO_INCREMENT,
+  occupation_name VARCHAR(255)
+);
+
+
+create table access_levels (
+  access_level_id INT PRIMARY KEY AUTO_INCREMENT,
+  access_level_name VARCHAR(255)
+);
+
+create table user_access (
+  user_id INT,
+  access_level_id INT,
+  FOREIGN KEY (user_id) REFERENCES users (user_id),
+  FOREIGN KEY (access_level_id) REFERENCES access_levels (access_level_id)
+);
+
+
+create table locations (
+  location_id INT PRIMARY KEY AUTO_INCREMENT,
+  location_name VARCHAR(255),
+  block VARCHAR(1),
+  capacity INT
+);
+
+
+create table checklist_items (
+  item_id INT PRIMARY KEY AUTO_INCREMENT,
+);
+
+
+Consulta: Mostrar todos os locais que já tiveram ao menos um evento.
+SELECT l.*
+FROM locations l
+JOIN events e ON l.location_id = e.location_id
+ 
+
+SELECT l.*
+FROM locations l
+LEFT JOIN events e ON l.location_id = e.location_id
+WHERE e.event_id IS NULL;
+
+
+SELECT *
+FROM events
+WHERE start_time >= '2023-01-01' AND end_time <= '2023-12-31'
+
+Consulta: Mostrar todos os usuários que já participaram de ao menos um evento.
+SELECT DISTINCT u.*
+FROM users u
+JOIN event_attendees ea ON u.user_id = ea.user_id
+
+SELECT e.*, u.*
+FROM events e
+JOIN event_attendees ea ON e.event_id = ea.event_id
+JOIN users u ON ea.user_id = u.user_id
+WHERE NOW() < e.start_time
+
+SELECT u.*, COUNT(ea.user_id) AS registration_count
+FROM users u
+LEFT JOIN event_attendees ea ON u.user_id = ea.user_id
+GROUP BY u.user_id
+
+SELECT e.event_name, COUNT(ea
+
+
+Consulta que mostra a média de participantes por local:
+SELECT l.location_id, l.location_name, AVG(e.participant_count) AS average_participants
+FROM locations l
+JOIN (
+  SELECT location_id, COUNT(DISTINCT user_id) AS participant_count
+  FROM events
+  GROUP BY location_id
+) e ON l.location_id = e.location_id
+GROUP BY l.location_id, l.location_name;
+
+
+Consulta que mostra todos os usuários e seus perfis de nível de acesso:
+SELECT u.user_id, u.name, a.access_level_name
+FROM users u
+JOIN user_access ua ON u.user_id = ua.user_id
+JOIN access_levels a ON ua.access_level_id = a.access_level_id;
+
+Consulta que mostra todos os eventos que já alcançaram o seu número máximo de participantes (esgotaram) mas que ainda não aconteceram:
+SELECT e.event_id, e.event_name
+FROM events e
+WHERE e.start_time > NOW() -- Verifica se o evento ainda não aconteceu
+AND (
+  SELECT COUNT(DISTINCT user_id)
+  FROM event_participants
+  WHERE event_id = e.event_id
+) >= e.max_participants; 
+
+Consulta que mostra todos os eventos que têm vagas disponíveis e cujo período de liberação de check-in está aberto:
+SELECT e.event_id, e.event_name
+FROM events e
+WHERE e.check_in_start_time <= NOW() -- Verifica se o período de liberação de check-in está aberto
+AND (
+  SELECT COUNT(DISTINCT user_id)
+  FROM event_participants
+  WHERE event_id = e.event_id
+) < e.max_participants; 
+
+Consulta que mostra todos os usuários que foram cadastrados em um determinado período, mas que possuem pelo menos dois check-ins:
+SELECT u.user_id, u.name
+FROM users u
+JOIN (
+  SELECT user_id
+  FROM event_check_ins
+  GROUP BY user_id
+  HAVING COUNT(DISTINCT event_id) >= 2 ) c ON u.user_id = c.user_id
+WHERE u.registration_date BETWEEN ''2023-01-01" AND "'2023-12-31"
+
+
+
+
+Consulta para mostrar a média por município da nota idesp_ef_iniciais, nota_idesp_ef_finais e nota_idesp_em:
+SELECT m.municipio_nome, AVG(n.idesp_ef_iniciais) AS media_idesp_ef_iniciais, AVG(n.idesp_ef_finais) AS media_idesp_ef_finais, AVG(n.idesp_em) AS media_idesp_em
+FROM municipios m
+JOIN escolas e ON m.municipio_id = e.municipio_id
+JOIN notas_idesp n ON e.escola_id = n.escola_id
+GROUP BY m.municipio_nome;
+
+
+Consulta para mostrar a média por município e por ano da nota idesp_ef_iniciais, nota_idesp_ef_finais e nota_idesp_em:
+SELECT m.municipio_nome, n.ano, AVG(n.idesp_ef_iniciais) AS media_idesp_ef_iniciais, AVG(n.idesp_ef_finais) AS media_idesp_ef_finais, AVG(n.idesp_em) AS media_idesp_em
+FROM municipios m
+JOIN escolas e ON m.municipio_id = e.municipio_id
+JOIN notas_idesp n ON e.escola_id = n.escola_id
+GROUP BY m.municipio_nome, n.ano;
+
+Média da composição conjunta por município:
+SELECT municipio,
+       AVG(idesp_ef_iniciais + idesp_ef_finais + idesp_em) AS media_composicao_conjunta
+FROM nome_da_tabela
+GROUP BY municipio;
